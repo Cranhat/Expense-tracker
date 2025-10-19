@@ -1,0 +1,12 @@
+backend:
+    python3 
+    psycopg2
+    
+database:
+    postgresql
+
+frontend:
+    kotlin
+
+documentation:
+    mkdocs

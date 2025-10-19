@@ -1,8 +1,13 @@
 import psycopg2
-from db_init import *
+from backend.app.database.db_init import *
 
 class Database:
     def __init__(self, host="localhost", dbname="postgres", user="postgres", password="postgres", port=5432):
+        self.host = host
+        self.dbname = dbname
+        self.user = user
+        self.password = password
+        self.port = port
         self.conn = psycopg2.connect(host=host, dbname=dbname, user=user, password=password, port=port)
         self.cursor = self.conn.cursor()
     
@@ -17,15 +22,16 @@ class Database:
         return f"host: {self.host}, dbname: {self.dbname}, user: {self.user}, password: {self.password}, port: {self.port}"
     
     def sendQuery(self, query):
-        self.cursor.execute(query)
-        self.conn.commit()
+        if (len(query) > 0): # not empty
+            self.cursor.execute(query)
+            self.conn.commit()
     
     def initializeTables(self):
         self.sendQuery(users_initialization)
         self.sendQuery(accounts_initialization)
         self.sendQuery(transactions_initialization)
-        self.sendQuery(categories_initialization)
-        self.sendQuery(customizable_initalization)
+        # self.sendQuery(categories_initialization)
+        # self.sendQuery(customizable_initalization)
 
     def fetchData(self):
         return 0

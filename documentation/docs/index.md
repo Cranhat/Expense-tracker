@@ -31,3 +31,15 @@ To connect with postgresql shell:
 
 To restart postgresql service:
     sudo systemctl restart postgresql
+
+## Database structure
+tables:
+    - users:
+        - 
+
+    - accounts:
+        - 
+        
+    - transactions:
+        - 
+
