@@ -25,14 +25,15 @@ class Database:
         if (len(query) > 0): # not empty
             self.cursor.execute(query)
             self.conn.commit()
-    
+
     def initializeTables(self):
         self.sendQuery(users_initialization)
         self.sendQuery(accounts_initialization)
         self.sendQuery(transactions_initialization)
+
         # self.sendQuery(categories_initialization)
         # self.sendQuery(customizable_initalization)
-
+        
     def fetchData(self):
         return 0
  

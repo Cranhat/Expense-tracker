@@ -12,6 +12,7 @@ users_initialization = """
     """
 
 accounts_initialization = """
+<<<<<<< HEAD
     CREATE TABLE IF NOT EXISTS account (
         id INT PRIMARY KEY,
         balance FLOAT,
@@ -40,5 +41,3 @@ transactions_initialization = """
 # """
 
 # customizable_initalization = """
-
-# """
