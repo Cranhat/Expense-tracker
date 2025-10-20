@@ -30,10 +30,10 @@ class Database:
         self.sendQuery(users_initialization)
         self.sendQuery(accounts_initialization)
         self.sendQuery(transactions_initialization)
+        self.sendQuery(groups_initialization)
+        self.sendQuery(user_groups_initialization)
+        self.sendQuery(group_transactions_initialization)
 
-        # self.sendQuery(categories_initialization)
-        # self.sendQuery(customizable_initalization)
-        
     def fetchData(self):
         return 0
  
