@@ -4,9 +4,8 @@ users_initialization = """
         name TEXT,
         second_name TEXT,
         surname TEXT,
-        date_of_birth DATE,
-        gender CHAR,
-        account_number INT,
+        username TEXT,
+        email TEXT,
         creation_date DATE
     );
     """
@@ -14,9 +13,11 @@ users_initialization = """
 accounts_initialization = """
     CREATE TABLE IF NOT EXISTS account (
         id INT PRIMARY KEY,
+        user_id INT,
+        name TEXT,
+        type int,
         balance FLOAT,
         creation_date DATE,
-        account_type INT,
         currency TEXT
     );
     """
@@ -24,21 +25,39 @@ accounts_initialization = """
 transactions_initialization = """
     CREATE TABLE IF NOT EXISTS transactions (
         id INT PRIMARY KEY,
-        balance FLOAT,
-        sender_id INT,
-        reciever_id INT,
-        transfer_type INT,
-        title TEXT,
+        account_id INT,
+        amount INT,
         currency TEXT,
-        creation_date DATE,
-        account_type INT
+        category TEXT,
+        Description TEXT,
+        transaction_at DATE,
+        created_at DATE
     );
     """
 
-# categories_initialization = """
+groups_initialization = """
+    CREATE TABLE IF NOT EXISTS groups (
+        id INT PRIMARY KEY,
+        name TEXT,
+        owner_user_id INT,
+        created_at DATE
+); """
 
-# """
+user_groups_initialization = """
+    CREATE TABLE IF NOT EXISTS user_groups (
+        user_id INT,
+        group_id INT,
+        role TEXT,
+        joined_at DATE
+); """
 
-# customizable_initalization = """
-
-# """
+group_transactions_initialization = """
+    CREATE TABLE IF NOT EXISTS group_transactions (
+        id INT PRIMARY KEY,
+        group_id INT,
+        paid_by_user_id INT,
+        amount INT,
+        currency TEXT,
+        description TEXT,
+        created_at DATE
+); """
