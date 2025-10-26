@@ -15,6 +15,8 @@ class Database:
         return self
     
     def __exit__(self, exc_type, exc_value, exc_traceback):
+        if(exc_type or exc_value or exc_traceback):
+            print(f"exc_type: {exc_type}, exc_value: {exc_value}, exc_traceback: {exc_traceback}")
         self.cursor.close()
         self.conn.close()
     
@@ -30,9 +32,18 @@ class Database:
         self.sendQuery(users_initialization)
         self.sendQuery(accounts_initialization)
         self.sendQuery(transactions_initialization)
-        # self.sendQuery(categories_initialization)
-        # self.sendQuery(customizable_initalization)
+        self.sendQuery(user_groups_initialization)
+        self.sendQuery(group_transactions_initialization)
 
-    def fetchData(self):
-        return 0
+    def fetchData(self, query):
+        self.cursor.execute(query)
+        data = self.cursor.fetchall()
+        return data
  
+    def removeData(self, query):
+        try:
+            self.sendQuery(query)
+            self.connection.commit()
+        except Exception as e:
+            print(f"Error deleting task: {e}")
+        
