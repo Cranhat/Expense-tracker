@@ -1,6 +1,6 @@
-def create_update(table, values, condition):
-    return f"""
-            UPDATE {table} 
-            SET {values}
-            WHERE {condition};
+def create_update():
+    return """
+            UPDATE {0} 
+            SET {1}
+            WHERE {2};
             """

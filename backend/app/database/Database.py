@@ -1,5 +1,9 @@
-import psycopg2
 from backend.app.database.db_init import *
+from backend.app.database.db_read import *
+
+from fastapi import FastAPI
+import uvicorn
+import psycopg2
 
 class Database:
     def __init__(self, host="localhost", dbname="postgres", user="postgres", password="postgres", port=5432):
@@ -10,7 +14,9 @@ class Database:
         self.port = port
         self.conn = psycopg2.connect(host=host, dbname=dbname, user=user, password=password, port=port)
         self.cursor = self.conn.cursor()
-    
+        self.app = FastAPI()
+        self._setup_routes()
+        
     def __enter__(self):
         return self
     
@@ -23,11 +29,54 @@ class Database:
     def __str__(self):
         return f"host: {self.host}, dbname: {self.dbname}, user: {self.user}, password: {self.password}, port: {self.port}"
     
+    def _setup_routes(self):
+
+        @self.app.get("/")
+        def read_root():
+            return {"message": "Welcome!"}
+
+        @self.app.get("/users/{id}")
+        def get_user(id: int):
+            query = create_fetch_where().format(*('*', 'users', f'id = {id}'))
+            data = self.fetchData(query)
+            return {"id": id, "data": data}
+        
+        @self.app.get("/accounts/{id}")
+        def get_account(id: int):
+            query = create_fetch_where().format(*('*', 'accounts', f'id = {id}'))
+            data = self.fetchData(query)
+            return {"id": id, "data": data}
+    
+        @self.app.get("/transactions/{id}")
+        def get_transaction(id: int):
+            query = create_fetch_where().format(*('*', 'transactions', f'id = {id}'))
+            data = self.fetchData(query)
+            return {"id": id, "data": data}
+        
+        @self.app.get("/groups/{id}")
+        def get_group(id: int):
+            query = create_fetch_where().format(*('*', 'groups', f'id = {id}'))
+            data = self.fetchData(query)
+            return {"id": id, "data": data}
+        
+        @self.app.get("/user_group/{user_id}")
+        def get_user_group(user_id: int):
+            query = create_fetch_where().format(*('*', 'user_groups', f'user_id = {user_id}'))
+            data = self.fetchData(query)
+            return {"id": user_id, "data": data}
+        
+        @self.app.get("/group_transactions/{id}")
+        def get_group_transaction(user_id: int):
+            query = create_fetch_where().format(*('*', 'group_transactions', f'id = {id}'))
+            data = self.fetchData(query)
+            return {"id": user_id, "data": data}
+        
+        
     def sendQuery(self, query):
-        if (len(query) > 0): # not empty
+        if (query):
             self.cursor.execute(query)
             self.conn.commit()
-    
+
     def initializeTables(self):
         self.sendQuery(users_initialization)
         self.sendQuery(accounts_initialization)
@@ -43,7 +92,9 @@ class Database:
     def removeData(self, query):
         try:
             self.sendQuery(query)
-            self.connection.commit()
+            self.conn.commit()
         except Exception as e:
             print(f"Error deleting task: {e}")
+    
+
         

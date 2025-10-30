@@ -1,12 +1,12 @@
-def create_fetch(table, object = "*"):
-    return f"""
-        SELECT {object}
-        FROM {table};
-    """
+def create_fetch():
+    return """
+            SELECT {0}
+            FROM {1};
+            """
     
-def create_fetch_where(table, object = "*", condition = ""):
-    return f"""
-        SELECT {object}
-        FROM {table}
-        WHERE {condition};
-    """
+def create_fetch_where():
+    return """
+            SELECT {0}
+            FROM {1}
+            WHERE {2};
+            """

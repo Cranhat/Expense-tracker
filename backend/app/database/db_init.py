@@ -11,7 +11,7 @@ users_initialization = """
     """
 
 accounts_initialization = """
-    CREATE TABLE IF NOT EXISTS account (
+    CREATE TABLE IF NOT EXISTS accounts (
         id INT PRIMARY KEY,
         user_id INT,
         name TEXT,
