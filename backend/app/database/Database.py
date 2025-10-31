@@ -1,9 +1,62 @@
 from backend.app.database.db_init import *
 from backend.app.database.db_read import *
+from backend.app.database.db_create import *
+from backend.app.database.db_remove import *
+from pydantic import BaseModel
 
 from fastapi import FastAPI
 import uvicorn
 import psycopg2
+
+class User(BaseModel):
+    id: int
+    name: str
+    second_name: str
+    surname: str
+    username: str
+    email: str
+    creation_date: str # add date class
+
+class Account(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    type: int
+    balance: float
+    creation_date: str
+    currenct: str
+
+class Transaction(BaseModel):
+    id: int
+    account_id: int
+    amount: int
+    currency: str
+    category: str
+    description: str
+    transaction_at: str
+    created_at: str
+
+class Group(BaseModel):
+    id: int
+    name: str
+    owner_user_id: int
+    created_at: str
+
+class User_Group(BaseModel):
+    user_id: int
+    group_id: int
+    role: str
+    joined_at: str
+
+class GroupTransaction(BaseModel):
+    id: int
+    group_id: int
+    paid_by_user_id: int
+    ammount: int
+    currency: str
+    description: str | None = None
+    created_at: str
+
 
 class Database:
     def __init__(self, host="localhost", dbname="postgres", user="postgres", password="postgres", port=5432):
@@ -34,13 +87,20 @@ class Database:
         @self.app.get("/")
         def read_root():
             return {"message": "Welcome!"}
-
+        
+        # Users
         @self.app.get("/users/{id}")
         def get_user(id: int):
             query = create_fetch_where().format(*('*', 'users', f'id = {id}'))
             data = self.fetchData(query)
             return {"id": id, "data": data}
         
+        # @self.app.post("/users")
+        # def create_user(id: int, name: str, second_name: str, surname: str, email: str, creation_date: str):
+        #     query = create_insert_user().format(*(id, name, second_name, surname, email, creation_date))
+        #     self.sendQuery(query)
+        #     return {'message': 'succesfully created user: {}'}
+
         @self.app.get("/accounts/{id}")
         def get_account(id: int):
             query = create_fetch_where().format(*('*', 'accounts', f'id = {id}'))
@@ -76,6 +136,8 @@ class Database:
         if (query):
             self.cursor.execute(query)
             self.conn.commit()
+            return 1
+        return 0
 
     def initializeTables(self):
         self.sendQuery(users_initialization)

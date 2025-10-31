@@ -29,7 +29,7 @@ transactions_initialization = """
         amount INT,
         currency TEXT,
         category TEXT,
-        Description TEXT,
+        description TEXT,
         transaction_at DATE,
         created_at DATE
     );
