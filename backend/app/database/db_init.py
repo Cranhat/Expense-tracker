@@ -25,8 +25,9 @@ accounts_initialization = """
 transactions_initialization = """
     CREATE TABLE IF NOT EXISTS transactions (
         id INT PRIMARY KEY,
-        account_id INT,
-        amount INT,
+        from_account_id INT,
+        to_account_id INT,
+        amount FLOAT,
         currency TEXT,
         category TEXT,
         description TEXT,
