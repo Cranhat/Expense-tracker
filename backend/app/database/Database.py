@@ -40,6 +40,13 @@ class Database:
             return {"message": "Welcome!"}
         
         # --- Users --- 
+        @self.app.get("/users")
+        def get_users():
+            query = create_fetch().format(*('*', 'users'))
+            data = self.fetchData(query)
+            print(data)
+            return {"data": data} 
+        
         @self.app.get("/users/{id}")
         def get_user(id: int):
             query = create_fetch_where().format(*('*', 'users', f'id = {id}'))
@@ -73,6 +80,12 @@ class Database:
             return {"message": f"User {id} deleted"}
         
         # --- Accounts --- 
+        @self.app.get("/accounts")
+        def get_accounts():
+            query = create_fetch().format(*('*', 'accounts'))
+            data = self.fetchData(query)
+            return {"data": data}
+        
         @self.app.get("/accounts/{id}")
         def get_account(id: int):
             query = create_fetch_where().format(*('*', 'accounts', f'id = {id}'))
@@ -80,6 +93,12 @@ class Database:
             return {"id": id, "data": data}
     
         # --- Transactions --- 
+        @self.app.get("/transactions")
+        def get_transactions():
+            query = create_fetch().format(*('*', 'transactions'))
+            data = self.fetchData(query)
+            return {"data": data}
+        
         @self.app.get("/transactions/{id}")
         def get_transaction(id: int):
             query = create_fetch_where().format(*('*', 'transactions', f'id = {id}'))
@@ -87,6 +106,18 @@ class Database:
             return {"id": id, "data": data}
         
         # --- Groups --- 
+        @self.app.get("/groups")
+        def get_groups():
+            query = create_fetch().format(*('*', 'groups'))
+            data = self.fetchData(query)
+            return {"data": data}
+        
+        # @self.app.get("/accounts")
+        # def get_accounts():
+        #     query = create_fetch().format(*('*', 'accounts'))
+        #     data = self.fetchData(query)
+        #     return {"data": data}
+        
         @self.app.get("/groups/{id}")
         def get_group(id: int):
             query = create_fetch_where().format(*('*', 'groups', f'id = {id}'))
@@ -94,6 +125,12 @@ class Database:
             return {"id": id, "data": data}
         
         # --- User groups --- 
+        @self.app.get("/user_groups")
+        def get_user_groups():
+            query = create_fetch().format(*('*', 'user_groups'))
+            data = self.fetchData(query)
+            return {"data": data}
+        
         @self.app.get("/user_group/{user_id}")
         def get_user_group(user_id: int):
             query = create_fetch_where().format(*('*', 'user_groups', f'user_id = {user_id}'))
@@ -101,6 +138,12 @@ class Database:
             return {"id": user_id, "data": data}
         
         # --- Group transactions --- 
+        @self.app.get("/group_transactions")
+        def get_group_transactions():
+            query = create_fetch().format(*('*', 'group_transactions'))
+            data = self.fetchData(query)
+            return {"data": data}
+        
         @self.app.get("/group_transactions/{id}")
         def get_group_transaction(id: int):
             query = create_fetch_where().format(*('*', 'group_transactions', f'id = {id}'))
@@ -119,6 +162,7 @@ class Database:
         self.sendQuery(users_initialization)
         self.sendQuery(accounts_initialization)
         self.sendQuery(transactions_initialization)
+        self.sendQuery(groups_initialization)
         self.sendQuery(user_groups_initialization)
         self.sendQuery(group_transactions_initialization)
 

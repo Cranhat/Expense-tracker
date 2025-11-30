@@ -11,4 +11,4 @@ Backend:
 Python with FastAPI, Pydantic(data objecsts), uvicorn(API server), psycopg2(connection with postgre sql)
 PostgreSQl
 Frontend:
-Flutter webappp
+Flutter webapp
