@@ -76,8 +76,12 @@ except Exception as e:
 
 
 st.subheader("Users")
-df_users = pd.DataFrame(users_list)
-st.table(df_users)
+columns = ["ID", "First name", "Second name", "Last name", "Username", "Email", "Created At"]
+df_users = pd.DataFrame(users_list, columns=columns)
+df_users = df_users.reset_index(drop=True)
+#df_users = pd.DataFrame(users_list)
+st.table(df_users.style.hide(axis="index"))
+#st.dataframe(df_users, use_container_width=True)
 
 st.subheader("Transactions")
 df_transactions = pd.DataFrame(transactions_list)
