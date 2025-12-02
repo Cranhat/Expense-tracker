@@ -76,12 +76,10 @@ except Exception as e:
 
 
 st.subheader("Users")
-columns = ["ID", "First name", "Second name", "Last name", "Username", "Email", "Created At"]
+columns = ["id", "First name", "Second name", "Last name", "Username", "Email", "Created At"]
 df_users = pd.DataFrame(users_list, columns=columns)
 df_users = df_users.reset_index(drop=True)
-#df_users = pd.DataFrame(users_list)
 st.table(df_users.style.hide(axis="index"))
-#st.dataframe(df_users, use_container_width=True)
 
 st.subheader("Transactions")
 df_transactions = pd.DataFrame(transactions_list)
@@ -102,3 +100,75 @@ st.table(df_user_groups)
 st.subheader("Group transactions")
 df_group_transactions = pd.DataFrame(group_transactions_list)
 st.table(df_group_transactions)
+
+st.title("Create User")
+
+id = st.text_input("id")
+name = st.text_input("name")
+second_name = st.text_input("second_name")
+surname = st.text_input("surname")
+username = st.text_input("username")
+email = st.text_input("email")
+creation_date = st.text_input("creation_date")
+
+if st.button("Submit"):
+    data = {
+        "id" : id,
+        "name": name,
+        "second_name": second_name,
+        "surname": surname,
+        "username": username,
+        "email": email,
+        "creation_date": creation_date,
+    }
+
+    response = requests.post("http://127.0.0.1:8000/users/", json=data)
+
+    if response.status_code == 200:
+        st.success("User created successfully!")
+        st.json(response.json())
+    else:
+        st.error("Failed to create user")
+        st.write(response.text)
+
+st.title("Update User")
+
+id = st.text_input("id")
+name = st.text_input("name")
+second_name = st.text_input("second_name")
+surname = st.text_input("surname")
+username = st.text_input("username")
+email = st.text_input("email")
+creation_date = st.text_input("creation_date")
+
+# if st.button("Update User Submit"):
+#     data = {
+#         "id" : id,
+#         "name": name,
+#         "second_name": second_name,
+#         "surname": surname,
+#         "username": username,
+#         "email": email,
+#         "creation_date": creation_date,
+#     }
+
+#     response = requests.put(f"http://127.0.0.1:8000/users/{id}", json=data)
+
+#     if response.status_code == 200:
+#         st.success("User updated successfully!")
+#         st.json(response.json())
+#     else:
+#         st.error("Failed to update user")
+#         st.write(response.text)
+
+
+
+# del_id = st.text_input("del_id")
+# if st.button("Delete"):
+#     response = requests.delete(f"http://127.0.0.1:8000/users/{del_id}")
+#     if response.status_code == 200:
+#         st.success("User deleted successfully!")
+#         st.json(response.json())
+#     else:
+#         st.error("Failed to delete user")
+#         st.write(response.text)

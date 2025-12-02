@@ -15,7 +15,7 @@ accounts_initialization = """
         id INT PRIMARY KEY,
         user_id INT,
         name TEXT,
-        type int,
+        type TEXT,
         balance FLOAT,
         creation_date DATE,
         currency TEXT

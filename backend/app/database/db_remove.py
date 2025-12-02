@@ -3,6 +3,3 @@ def create_remove():
             DELETE FROM {0}
             WHERE {1};
             """     
-
-
-

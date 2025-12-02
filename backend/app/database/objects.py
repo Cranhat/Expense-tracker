@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class User(BaseModel):
     id: int
     name: str
@@ -8,7 +9,7 @@ class User(BaseModel):
     surname: str
     username: str
     email: str
-    creation_date: str # add date class
+    creation_date: str # add datetime
 
 class Account(BaseModel):
     id: int
@@ -17,13 +18,13 @@ class Account(BaseModel):
     type: int
     balance: float
     creation_date: str
-    currenct: str
+    currency: str
 
 class Transaction(BaseModel):
     id: int
     account_id: int
-    from_user_id: int
-    to_user_id: int
+    from_account_id: int
+    to_account_id: int
     amount: int
     currency: str
     category: str
