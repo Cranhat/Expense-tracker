@@ -15,7 +15,7 @@ class Account(BaseModel):
     id: int
     user_id: int
     name: str
-    type: int
+    type: str
     balance: float
     creation_date: str
     currency: str
