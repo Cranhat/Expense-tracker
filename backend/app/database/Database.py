@@ -358,8 +358,57 @@ class Database:
             return {"message": f"Group Transaction {id} deleted"}
 
         
+        #################################################### nicole
+
+        @self.app.get("/users/{id}/groups")
+        def get_this_user_groups(id: int):
+            conn = self.get_conn()
+            curr = conn.cursor()
+
+            query = f"""
+                SELECT 
+                    ug.group_id AS group_id,
+                    ug.user_id AS user_id,
+                    g.name AS group_name,
+                    uo.username AS owner_username,
+                    ug.role AS role,
+                    ug.joined_at AS joined_at
+                FROM user_groups ug
+                LEFT JOIN groups g ON ug.group_id = g.id
+                LEFT JOIN users uo ON g.owner_user_id = uo.id
+                WHERE ug.user_id = {id}
+                ORDER BY ug.joined_at;
+            """
+
+            data = self.fetchData(query, conn, curr)
+            self.close_conn(conn, curr)
+
+            return {"user_id": id, "groups": data}
         
 
-    
 
-        
+        @self.app.get("/groups/{group_id}/data")
+        def get_this_group(group_id: int):
+            conn = self.get_conn()
+            curr = conn.cursor()
+
+            query = f"""
+                SELECT 
+                    ug.user_id AS user_id,
+                    u.username AS username,
+                    uo.username AS owner_username,
+                    g.owner_user_id AS owner_id,
+                    ug.role AS role,
+                    ug.joined_at AS joined_at,
+                    g.name AS group_name
+                FROM user_groups ug
+                LEFT JOIN users u ON ug.user_id = u.id
+                LEFT JOIN groups g ON ug.group_id = g.id
+                LEFT JOIN users uo ON g.owner_user_id = uo.id
+                WHERE ug.group_id = {group_id}
+                ORDER BY ug.joined_at;
+            """
+            data = self.fetchData(query, conn, curr)
+            self.close_conn(conn, curr)
+
+            return {"data": data}

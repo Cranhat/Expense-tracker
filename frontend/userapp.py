@@ -1,13 +1,12 @@
 import streamlit as st
-import requests
 import pandas as pd
-from datetime import date
-from get_api import *
+from get_api import get_db
 from web_requests import *
+from log_handler import *
 
 st.title("Personal Expense Tracker")
 
-df_users, df_accounts, df_transactions, df_groups, df_user_groups, df_group_transactions = get_db()
+df_users = get_db("users")
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -15,46 +14,23 @@ if "username" not in st.session_state:
     st.session_state.username = ""
 if "show_logout_confirm" not in st.session_state:
     st.session_state.show_logout_confirm = False
-
-def do_login(name: str):
-    if name:
-        st.session_state.username = name
-        st.session_state.logged_in = True
-        st.session_state.show_logout_confirm = False
-        st.rerun()
-
-def request_logout():
-    st.session_state.show_logout_confirm = True
-    st.rerun()
-
-def confirm_logout():
-    st.session_state.logged_in = False
-    st.session_state.username = ""
-    st.session_state.show_logout_confirm = False
-    st.rerun()
-
-def cancel_logout():
-    st.session_state.show_logout_confirm = False
-    st.rerun()
-
-@st.dialog("Confirm Logout")
-def logout_dialog():
-    st.write("Are you sure you want to log out?")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Yes, log out", type="primary"):
-            confirm_logout()
-    with col2:
-        if st.button("No, stay"):
-            cancel_logout()
-
+if "manage_group" not in st.session_state:
+    st.session_state.manage_group = -1
+if "user_id" not in st.session_state:
+    st.session_state.user_id = -1
 
 if not st.session_state.logged_in:
     username_input = st.text_input("Enter your username", value="")
     if st.button("Log in"):
             do_login(username_input.strip().lower())
 
-if st.session_state.logged_in:
+if st.session_state.logged_in and st.session_state.manage_group == -1:
+    df_accounts = get_db("accounts")
+    df_transactions = get_db("transactions")
+    df_groups = get_db("groups")
+    df_user_groups = get_db("user_groups")
+    df_group_transactions = get_db("group_transactions")
+
     df_user = df_users[df_users["Username"].str.lower() ==  st.session_state.username]
 
     if df_user.empty:
@@ -64,32 +40,23 @@ if st.session_state.logged_in:
         first_name = df_user.iloc[0]["First name"]
         st.subheader(f"Welcome, {first_name}!")
 
-        if "df_users" not in st.session_state:
-            st.session_state.df_users = df_users.copy()
-        if "df_accounts" not in st.session_state:
-            st.session_state.df_accounts = df_accounts.copy()
-        if "df_transactions" not in st.session_state:
-            st.session_state.df_transactions = df_transactions.copy()
-
         # new account
         create_account(int(df_user["ID"].iloc[0]), int(df_accounts["ID"].max() + 1) if not df_accounts.empty else 1)
+        df_accounts = get_db("accounts")
 
         # acoounts
-        user_accounts_df = st.session_state.df_accounts[st.session_state.df_accounts["User ID"] == user_id]
+        user_accounts_df = df_accounts[df_accounts["User ID"] == user_id]
         display_user_accounts_df = user_accounts_df.drop(columns=["ID", "User ID"])
-        display_user_accounts_df["Type"] = display_user_accounts_df["Type"].map(acc_map_from_type)
         st.subheader("Your Accounts")
         if not user_accounts_df.empty:
             st.table(display_user_accounts_df) #accounts table
             account_to_show = None
-
             
             with st.expander("Show transactions"):
                 for idx, row in user_accounts_df.iterrows():
                     col1, col2 = st.columns([3, 1])
                     with col1:
-                        type_str = acc_map_from_type.get(row['Type'], "Unknown")
-                        st.write(f"{row['Name']} - Type: {type_str} - Balance: {row['Balance']}")
+                        st.write(f"{row['Name']} - Type: {row['Type']} - Balance: {row['Balance']}")
                     with col2:
                         if st.button("Load Transactions", key=f"txn_{row['ID']}"):
                             account_to_show = row['ID']
@@ -97,10 +64,65 @@ if st.session_state.logged_in:
 
             if account_to_show is not None:
                 st.subheader("Transactions")
-                show_transactions = st.session_state.df_transactions[st.session_state.df_transactions["Account ID"] == account_to_show]
+                show_transactions = df_transactions[df_transactions["Account ID"] == account_to_show]
                 show_transactions = show_transactions.drop(columns=["ID", "From account ID", "Account ID"])
-                st.dataframe(show_transactions, use_container_width=True) #transactions table
-                
+                st.dataframe(show_transactions, width='stretch') #transactions table
+
+        # groups
+        response = requests.get(f"http://127.0.0.1:8000/users/{user_id}/groups")
+        user_groups = pd.DataFrame(response.json()["groups"], columns=["ID", "User ID", "Group name", "Owned by", "Role", "Created at"])
+        df_groups = get_db("groups")
+
+        st.subheader("Your Groups")
+        if not user_groups.empty:
+            st.table(user_groups.drop(columns=["ID", "User ID",]))
+        else:
+            st.info("You are not part of any groups.")
+
+        create_group(user_id, df_groups)
+        with st.expander("Manage your groups"):
+            for idx, row in user_groups.iterrows():
+                col1, col2 = st.columns([2, 1])
+                with col1:
+                    st.write(f"{row['Group name']}")
+                with col2:
+                    if st.button("Manage", key=f"manage_{row['ID']}"):
+                        st.session_state.manage_group = row["ID"]
+                        st.session_state.user_id = user_id
+
+        if not st.session_state.show_logout_confirm:
+            if st.button("Log out"):
+                request_logout()
+        else:
+            logout_dialog()
+
+##group management
+if st.session_state.manage_group != -1:
+    group_id = st.session_state.manage_group
+    response = requests.get(f"http://127.0.0.1:8000/groups/{group_id}/data")
+    columns = ["User ID", "Username", "Owner", "Owner ID", "Role", "Joined at", "Name"]
+    data_dicts = [dict(zip(columns, row)) for row in response.json()["data"]]
+    group = pd.DataFrame(data_dicts)
+    owner = group.at[0, "Owner"]
+    group_name = group["Name"].iloc[0]
+
+    if st.session_state.user_id == group["Owner ID"].iloc[0]:
+        st.subheader(f"Managing group {group_name}, owned by You")
+        st.table(group.drop(columns=["User ID", "Owner", "Owner ID", "Name"]))
+        with st.expander("Add a member"):
+            create_member(group_id)
+    else:
+        st.subheader(f"Managing group {group_name}, owned by {owner}")
+        st.table(group.drop(columns=["User ID", "Owner", "Owner ID", "Name"]))
+    # with st.expander("Make a new transaction"):
+    #     create_group_transaction(st.session_state.user_id, group)
+    if st.button("Go back"):
+        st.session_state.manage_group = -1
+
+if st.session_state.logged_in is False:
+    create_user(df_users)
+
+
                 # submitted = 0
                 # with st.expander("Add a transaction"):
                 #     with st.form("add_transaction_form"):
@@ -142,32 +164,3 @@ if st.session_state.logged_in:
 
                 #                     st.session_state.df_transactions = pd.concat([st.session_state.df_transactions,pd.DataFrame([new_transaction]),],ignore_index=True,)
                 #                     st.success("Transaction created successfully!")
-
-
-        # groups
-        user_group_ids = df_user_groups[df_user_groups["User ID"] == user_id]["Group ID"].tolist()
-        user_groups_df = df_groups[df_groups["ID"].isin(user_group_ids)]
-        st.subheader("Your Groups")
-        if not user_groups_df.empty:
-            st.table(user_groups_df)
-        else:
-            st.info("You are not part of any groups.")
-
-
-        if not st.session_state.show_logout_confirm:
-            if st.button("Log out"):
-                request_logout()
-        else:
-            logout_dialog()
-            # st.warning("Are you sure you want to log out?")
-            # col1, col2 = st.columns(2)
-            # with col1:
-            #     if st.button("Yes, log out"):
-            #         confirm_logout()
-            # with col2:
-            #     if st.button("Cancel"):
-            #         cancel_logout()
-
-
-if st.session_state.logged_in is False:
-    create_user(int(df_users["ID"].max() + 1) if not df_users.empty else 1)
