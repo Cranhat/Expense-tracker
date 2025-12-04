@@ -6,6 +6,7 @@ from backend.app.database.db_update import *
 from backend.app.database.objects import *
 from datetime import datetime
 from fastapi import FastAPI
+from fastapi import Depends
 import psycopg2
 
 
@@ -42,6 +43,14 @@ class Database:
         curr.close()
         conn.close()
 
+    def get_db(self):
+        conn = self.get_conn()
+        curr = conn.cursor()
+        try:
+            yield conn, curr
+        finally:
+            self.close_conn(conn, curr)
+    
     def initializeTables(self):
         conn = self.get_conn()
         curr = conn.cursor()
@@ -67,303 +76,244 @@ class Database:
         
 
         # --- Users --- 
-        @self.app.get("/users") # get user
-        def get_users():
-            conn = self.get_conn()
-            curr = conn.cursor()
+        @self.app.get("/users") # get users
+        def get_users(db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch().format(*('*', 'users'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"data": data} 
         
-        @self.app.get("/users/{id}") # get users
-        def get_user(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        @self.app.get("/users/{id}") # get user
+        def get_user(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch_where().format(*('*', 'users', f'id = {id}'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"id": id, "data": data} 
         
         @self.app.post("/users/") # post user
-        async def create_user(user: User):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        async def create_user(user: User, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_insert_user().format(*(user.id, user.name, user.second_name, user.surname, user.username, user.email, user.creation_date))
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"User added"}
 
         @self.app.put("/users/{id}") # put user
-        def update_user(id: int, user: User):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def update_user(id: int, user: User, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_update_user().format(*(user.id, user.name, user.second_name, user.surname, user.username, user.email, user.creation_date)) 
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"User updated"}
 
         @self.app.delete("/users/{id}") # delete user
-        def delete_user(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def delete_user(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             self.sendQuery(create_remove().format(*("users", f"id = {id}")), conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"User {id} deleted"}
         
 
         # --- Accounts --- 
         @self.app.get("/accounts") # get account
-        def get_accounts():
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_accounts(db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch().format(*('*', 'accounts'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"data": data}
         
         @self.app.get("/accounts/{id}") # get accounts
-        def get_account(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_account(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch_where().format(*('*', 'accounts', f'id = {id}'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"id": id, "data": data}
         
         @self.app.post("/accounts/") # post account
-        async def create_account(account: Account):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        async def create_account(account: Account, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_insert_account().format(*(account.id, account.user_id, account.name, account.type, account.balance, account.creation_date, account.currency))
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Account added"}
     
         @self.app.put("/accounts/{id}") # put account
-        def update_account(id: int, account: Account):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def update_account(id: int, account: Account, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_update_account().format(*(account.id, account.user_id, account.name, account.type, account.balance, account.creation_date, account.currency)) 
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Account updated"}
         
         @self.app.delete("/accounts/{id}") # delete account
-        def delete_account(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def delete_account(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             self.sendQuery(create_remove().format(*("accounts", f"id = {id}")), conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Account {id} deleted"}
     
 
         # --- Transactions --- 
         @self.app.get("/transactions/{id}") # get transaction
-        def get_transaction(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_transaction(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch_where().format(*('*', 'transactions', f'id = {id}'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"id": id, "data": data}
         
         @self.app.get("/transactions") # get transactions
-        def get_transactions():
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_transactions(db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch().format(*('*', 'transactions'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"data": data}
         
         @self.app.post("/transactions/") # post transaction
-        async def create_transaction(transaction: Transaction):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        async def create_transaction(transaction: Transaction, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_insert_transaction().format(*(transaction.id, transaction.from_account_id, transaction.to_account_id, transaction.amount, transaction.currency, transaction.category, transaction.description, transaction.transaction_at, transaction.created_at))
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Transaction added"}
     
         @self.app.put("/transactions/{id}") # put transaction
-        def update_transaction(id: int, transaction: Transaction):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def update_transaction(id: int, transaction: Transaction, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_update_transaction().format(*(transaction.id, transaction.from_account_id, transaction.to_account_id, transaction.amount, transaction.currency, transaction.category, transaction.description, transaction.transaction_at, transaction.created_at)) 
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Transaction updated"}
         
         @self.app.delete("/transactions/{id}") # delete transaction
-        def delete_transaction(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def delete_transaction(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             self.sendQuery(create_remove().format(*("transactions", f"id = {id}")), conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Transaction {id} deleted"}
         
 
         # --- Groups --- 
         @self.app.get("/groups/{id}") # get group
-        def get_group(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_group(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch_where().format(*('*', 'groups', f'id = {id}'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"id": id, "data": data}
         
         @self.app.get("/groups") # get groups
-        def get_groups():
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_groups(db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch().format(*('*', 'groups'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"data": data}
         
         @self.app.post("/groups/") # post group
-        async def create_group(group: Group):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        async def create_group(group: Group, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_insert_group().format(*(group.id, group.name, group.owner_user_id, group.created_at))
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Group added"}
     
         @self.app.put("/groups/{id}") # put group
-        def update_group(id: int, group: Group):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def update_group(id: int, group: Group, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_update_group().format(*(group.id, group.name, group.owner_user_id, group.created_at)) 
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Group updated"}
         
         @self.app.delete("/groups/{id}") # delete group
-        def delete_group(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def delete_group(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             self.sendQuery(create_remove().format(*("groups", f"id = {id}")), conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Group {id} deleted"}
 
         
         # --- User groups --- 
         @self.app.get("/user_group/{user_id}") # get user_group
-        def get_user_group(user_id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_user_group(user_id: int, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch_where().format(*('*', 'user_groups', f'user_id = {user_id}'))
             data = self.fetchData(query, conn, curr)
             return {"id": user_id, "data": data}
         
         @self.app.get("/user_groups") # get user_groups
-        def get_user_groups():
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_user_groups(db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch().format(*('*', 'user_groups'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"data": data}
         
         @self.app.post("/user_groups/") # post user_group
-        async def create_user_group(user_group: User_Group):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        async def create_user_group(user_group: User_Group, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_insert_user_group().format(*(user_group.user_id, user_group. group_id, user_group.role, user_group.joined_at))
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Group added"}
     
         @self.app.put("/user_groups/{id}") # put user_group
-        def update_user_group(id: int, user_group: User_Group):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def update_user_group(id: int, user_group: User_Group, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_update_user_group().format(*(user_group.user_id, user_group. group_id, user_group.role, user_group.joined_at)) 
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"User group updated"}
         
         @self.app.delete("/user_groups/{id}") # delete user_group
-        def delete_user_group(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def delete_user_group(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             self.sendQuery(create_remove().format(*("user_groups", f"id = {id}")), conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"User group {id} deleted"}
 
         
         # # --- Group transactions --- 
         @self.app.get("/group_transactions/{id}") # get group_transaction
-        def get_group_transaction(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_group_transaction(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch_where().format(*('*', 'group_transactions', f'id = {id}'))
             data = self.fetchData(query, conn, curr)
             return {"id": id, "data": data}
         
         @self.app.get("/group_transactions") # get group_transactions
-        def get_group_transactions():
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_group_transactions(db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch().format(*('*', 'group_transactions'))
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
             return {"data": data}
         
         @self.app.post("/group_transactions/") # post group_transaction
-        async def create_group_transaction(group_transaction: GroupTransaction):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        async def create_group_transaction(group_transaction: GroupTransaction, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_insert_group_transaction().format(*(group_transaction.id, group_transaction.group_id, group_transaction.paid_by_user_id, group_transaction.ammount, group_transaction.currency, group_transaction.description, group_transaction.created_at))
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Group Transaction added"}
     
         @self.app.put("/group_transactions/{id}") # put group_transaction
-        def update_group_transaction(id: int, group_transaction: GroupTransaction):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def update_group_transaction(id: int, group_transaction: GroupTransaction, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_update_group_transaction().format(*(group_transaction.id, group_transaction.group_id, group_transaction.paid_by_user_id, group_transaction.ammount, group_transaction.currency, group_transaction.description, group_transaction.created_at)) 
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Group Transaction updated"}
         
         @self.app.delete("/group_transactions/{id}") # delete group_transaction
-        def delete_group_transaction(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def delete_group_transaction(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             self.sendQuery(create_remove().format(*("group_transactions", f"id = {id}")), conn, curr)
             self.commit(conn, curr)
-            self.close_conn(conn, curr)
             return {"message": f"Group Transaction {id} deleted"}
 
         
         #################################################### nicole
 
         @self.app.get("/users/{id}/groups")
-        def get_this_user_groups(id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_this_user_groups(id: int, db = Depends(self.get_db)):
+            conn, curr = db
 
             query = f"""
                 SELECT 
@@ -381,16 +331,14 @@ class Database:
             """
 
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
 
             return {"user_id": id, "groups": data}
         
 
 
         @self.app.get("/groups/{group_id}/data")
-        def get_this_group(group_id: int):
-            conn = self.get_conn()
-            curr = conn.cursor()
+        def get_this_group(group_id: int, db = Depends(self.get_db)):
+            conn, curr = db
 
             query = f"""
                 SELECT 
@@ -409,6 +357,5 @@ class Database:
                 ORDER BY ug.joined_at;
             """
             data = self.fetchData(query, conn, curr)
-            self.close_conn(conn, curr)
 
             return {"data": data}
