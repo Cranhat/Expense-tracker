@@ -270,7 +270,7 @@ class Database:
             return {"message": f"User group {id} deleted"}
 
         
-        # # --- Group transactions --- 
+        # --- Group transactions --- 
         @self.app.get("/group_transactions/{id}") # get group_transaction
         def get_group_transaction(id: int, db = Depends(self.get_db)):
             conn, curr = db
@@ -307,7 +307,38 @@ class Database:
             self.sendQuery(create_remove().format(*("group_transactions", f"id = {id}")), conn, curr)
             self.commit(conn, curr)
             return {"message": f"Group Transaction {id} deleted"}
+        
 
+        # --- Passwords --- 
+        @self.app.get("/passwords/{user_id}") # get password
+        def get_password(user_id: int, db = Depends(self.get_db)):
+            conn, curr = db
+            query = create_fetch_where().format(*('*', 'password', f'user_id = {user_id}'))
+            data = self.fetchData(query, conn, curr)
+            return {"user_id": user_id, "data": data}
+        
+        @self.app.post("/passwords/") # post password
+        async def create_password(password: Password, db = Depends(self.get_db)):
+            conn, curr = db
+            query = create_insert_password().format(*(password.user_id, password.password))
+            self.sendQuery(query, conn, curr)
+            self.commit(conn, curr)
+            return {"message": f"password created"}
+    
+        @self.app.put("/passwords/{user_id}") # put password
+        def update_password(id: int, password: Password, db = Depends(self.get_db)):
+            conn, curr = db
+            query = create_update_passowrd().format(*(password.user_id, password.password)) 
+            self.sendQuery(query, conn, curr)
+            self.commit(conn, curr)
+            return {"message": f"password updated"}
+        
+        @self.app.delete("/passwords/{user_id}") # delete password
+        def delete_password(user_id: int, db = Depends(self.get_db)):
+            conn, curr = db
+            self.sendQuery(create_remove().format(*("passwords", f"user_id = {user_id}")), conn, curr)
+            self.commit(conn, curr)
+            return {"message": f"password {user_id} deleted"}
         
         #################################################### nicole
 

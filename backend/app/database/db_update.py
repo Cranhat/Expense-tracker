@@ -77,3 +77,11 @@ def create_update_group_transaction():
     created_at = '{6}'
     WHERE id = {0}
     """
+
+def create_update_passowrd():
+    return """
+    UPDATE passwords 
+    SET 
+    user_id = {0},
+    password = {1}
+    """

@@ -62,3 +62,9 @@ group_transactions_initialization = """
         description TEXT,
         created_at DATE
 ); """
+
+passwords_initialization = """
+    CREATE TABLE IF NOT EXISTS user_groups (
+        user_id INT,
+        password TEXT
+); """

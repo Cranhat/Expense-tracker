@@ -52,3 +52,7 @@ class GroupTransaction(BaseModel):
     currency: str
     description: str | None = None
     created_at: str
+
+class Password(BaseModel):
+    user_id: int
+    password: str
