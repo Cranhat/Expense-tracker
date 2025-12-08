@@ -22,10 +22,9 @@ class Account(BaseModel):
 
 class Transaction(BaseModel):
     id: int
-    account_id: int
     from_account_id: int
     to_account_id: int
-    amount: int
+    amount: float
     currency: str
     category: str
     description: str

@@ -22,7 +22,7 @@ def get_db(df: str):
     COLUMNS = {
         "users": ["ID", "First name", "Second name", "Last name", "Username", "Email", "Created at"],
         "accounts": ["ID", "User ID", "Name", "Type", "Balance", "Created at", "Currency"],
-        "transactions": ["ID", "From account ID", "Account ID", "Amount", "Currency",
+        "transactions": ["ID", "From account ID", "To account ID", "Amount", "Currency",
                          "Category", "Description", "Transaction at", "Created at"],
         "groups": ["ID", "Name", "Owned by", "Created at"],
         "user_groups": ["User ID", "Group ID", "Role", "Joined at"],
