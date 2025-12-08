@@ -57,14 +57,14 @@ group_transactions_initialization = """
         id INT PRIMARY KEY,
         group_id INT,
         paid_by_user_id INT,
-        amount INT,
+        amount FLOAT,
         currency TEXT,
         description TEXT,
         created_at DATE
 ); """
 
 passwords_initialization = """
-    CREATE TABLE IF NOT EXISTS user_groups (
+    CREATE TABLE IF NOT EXISTS passwords (
         user_id INT,
         password TEXT
 ); """

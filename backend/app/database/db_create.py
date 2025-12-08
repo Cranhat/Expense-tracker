@@ -29,13 +29,13 @@ def create_insert_user_group():
     """
 
 def create_insert_group_transaction():
-    return """"
-    INSERT INTO group_transactions (id, group_id, paid_by_user_id, amount, currency, description, created_ad)
+    return """
+    INSERT INTO group_transactions (id, group_id, paid_by_user_id, amount, currency, description, created_at)
     VALUES ({0}, {1}, {2}, {3}, '{4}', '{5}', '{6}');
     """
 
 def create_insert_password():
-    return """"
+    return """
     INSERT INTO passwords (user_id, password)
     VALUES ({0}, '{1}');
     """

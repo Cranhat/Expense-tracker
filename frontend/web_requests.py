@@ -4,23 +4,38 @@ import pandas as pd
 from datetime import date
 from get_api import get_db
 
-def create_user(df_users):
+def chech_password(password) -> bool:
+    if len(password) < 9:
+        return False
+    lower = any(ch.islower() for ch in password)
+    upper = any(ch.isupper() for ch in password)
+    number = any(ch.isdigit() for ch in password)
+    special = any(not ch.isalnum() for ch in password)
+
+    return lower and upper and number and special
+
+def create_user():
+    df_users = get_db("users")
     with st.expander("Create User"):
         name = st.text_input("Name", placeholder="This field is required")
         second_name = st.text_input("Second name")
         surname = st.text_input("Surname", placeholder="This field is required")
         username = st.text_input("Username", placeholder="This field is required")
         email = st.text_input("Email", placeholder="This field is required")
+        password = st.text_input("Password", type="password", placeholder="This field is required")
 
         if st.button("Submit", key="Submit user"):
             if (df_users["Username"].str.lower() == username).any():
                 st.error("This username is taken")
+            elif(chech_password(password) == False):
+                st.error("Your password should contain at least: 10 characters, a number, a special character, a small and a big letter")
             else:
                 if not name.strip() or not surname.strip() or not username.strip() or not email.strip():
                     st.error("Please fill in required fields")
                 else:
-                    data = {
-                        "id" : int(df_users["ID"].max() + 1) if not df_users.empty else 1,
+                    id = int(df_users["ID"].max() + 1) if not df_users.empty else 1
+                    data1 = {
+                        "id" : id,
                         "name": name,
                         "second_name": second_name,
                         "surname": surname,
@@ -29,13 +44,24 @@ def create_user(df_users):
                         "creation_date": date.today().isoformat()
                     }
 
-                    response = requests.post("http://127.0.0.1:8000/users/", json=data)
+                    response = requests.post("http://127.0.0.1:8000/users/", json=data1)
 
                     if response.status_code == 200:
                         st.success("User created successfully!")
                         #st.json(response.json())
                     else:
                         st.error("Failed to create user")
+                        st.write(response.text)
+
+                    data2 = {
+                        "user_id" : id,
+                        "password": password
+                    }
+
+                    response = requests.post("http://127.0.0.1:8000/passwords/", json=data2)
+
+                    if response.status_code != 200:
+                        st.error("Internal error")
                         st.write(response.text)
 
 
@@ -45,7 +71,7 @@ def create_account(user_id, account_id):
         name = st.text_input("Name", placeholder="This field is required")
         type = st.selectbox("Account type:", options=["Personal", "Savings", "Currency"])
         if (type == "Currency"):
-            currency = st.selectbox("Currency:", options=["PLN", "EUR"]) #add more currencies!!!!!!!!!!!
+            currency = st.selectbox("Currency:", options=["PLN", "EUR", "GBP", "USD", "CZK", "JPY"]) #add more currencies!!!!!!!!!!!
         else:
             currency = "PLN"
 
@@ -58,7 +84,7 @@ def create_account(user_id, account_id):
                     "user_id": user_id,
                     "name": name,
                     "type": type,
-                    "balance": 0,
+                    "balance": 100,
                     "creation_date": date.today().isoformat(),
                     "currency": currency
                 }
@@ -109,7 +135,7 @@ def create_group(user_id, df_groups):
         name = st.text_input("Name", placeholder="This field is required", key="group_name")
         group_id = int(df_groups["ID"].max() + 1) if not df_groups.empty else 1
         if st.button("Submit", key="Submit group"):
-            if not name:
+            if not name.strip():
                 st.error("Please fill in required fields")
             else:
                 data1 = {
@@ -147,7 +173,7 @@ def create_member(group_id):
     new_member = df_users[df_users["Username"].str.lower() ==  username]
 
     if st.button("Submit", key="Submit member"):
-        if not username or not role:
+        if not username.strip() or not role.strip():
             st.error("Please fill in required fields")
         elif new_member.empty:
             st.warning("Username not found :(")
@@ -174,33 +200,36 @@ def create_member(group_id):
 
 
 
-def create_group_transaction(user_id, group):
+def create_group_transaction(user_id, group_id):
     df_group_transactions = get_db("group_transactions")
     df_accounts = get_db("accounts")
     user_accounts_df = df_accounts[df_accounts["User ID"] == user_id]
     account = st.selectbox("Choose account:", options=user_accounts_df["Name"])
+    
     if not account:
-        st.error("No funds of chosen account")
+        st.warning("You have no accounts")
     else:
-        balance = float(account["Balance"].iloc[0])
-        amount = st.number_input("Amount:", min_value=0.01, max_value=balance)
-        description = st.text_input("Despription")
-        if st.button("Submit", key="Submit group transaction"):
-            if not amount:
-                st.error("Please fill in required fields")
-                data = {
-                    "id": int(df_group_transactions["ID"].max() + 1) if not df_group_transactions.empty else 1,
-                    "group_id": int(group["Group ID"]),
-                    "paid_by_user_id": int(user_id),
-                    "amount": amount,
-                    "currency": str(account["Currency"]),
-                    "description": description,
-                    "created_at": date.today().isoformat()
-                }
+        chosen_account = user_accounts_df = df_accounts[df_accounts["Name"] == account]
+        balance = float(chosen_account["Balance"].iloc[0])
+        if(balance <= 0):
+            st.warning("Insufficient funds in chosen account")
+        else:
+            amount= st.number_input("Amount:", min_value=0.01, max_value=balance)
+            description = st.text_input("Despription")
+            if st.button("Submit", key="Submit group transaction"):
+                    data = {
+                        "id": int(df_group_transactions["ID"].max() + 1) if not df_group_transactions.empty else 1,
+                        "group_id": int(group_id),
+                        "paid_by_user_id": int(user_id),
+                        "amount": float(amount),
+                        "currency": str(chosen_account["Currency"].iloc[0]),
+                        "description": description,
+                        "created_at": date.today().isoformat()
+                    }
 
-                response = requests.post("http://127.0.0.1:8000/group_transactions/", json=data)
-                if response.status_code == 200:
-                    st.success("Transaction send!")
-                else:
-                    st.error("Failed to sent the transaction")
-                    st.write(response.text)
+                    response = requests.post("http://127.0.0.1:8000/group_transactions/", json=data)
+                    if response.status_code == 200:
+                        st.success("Transaction send!")
+                    else:
+                        st.error("Failed to sent the transaction")
+                        st.write(response.text)

@@ -26,7 +26,7 @@ def get_db(df: str):
                          "Category", "Description", "Transaction at", "Created at"],
         "groups": ["ID", "Name", "Owned by", "Created at"],
         "user_groups": ["User ID", "Group ID", "Role", "Joined at"],
-        "group_transactions": ["ID", "Paid by", "Amount", "Currency", "Description", "Created at"],
+        "group_transactions": ["ID", "Group ID", "Paid by", "Amount", "Currency", "Description", "Created at"],
     }
 
     if df not in APIS:

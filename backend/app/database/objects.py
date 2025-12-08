@@ -48,7 +48,7 @@ class GroupTransaction(BaseModel):
     id: int
     group_id: int
     paid_by_user_id: int
-    ammount: int
+    amount: float
     currency: str
     description: str | None = None
     created_at: str

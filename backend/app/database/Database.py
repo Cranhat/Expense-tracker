@@ -61,6 +61,8 @@ class Database:
         self.sendQuery(groups_initialization, conn, curr)
         self.sendQuery(user_groups_initialization, conn, curr)
         self.sendQuery(group_transactions_initialization, conn, curr)
+        self.sendQuery(passwords_initialization, conn, curr)
+        conn.commit()
 
         self.close_conn(conn, curr)
 
@@ -115,6 +117,7 @@ class Database:
         
 
         # --- Accounts --- 
+
         @self.app.get("/accounts") # get account
         def get_accounts(db = Depends(self.get_db)):
             conn, curr = db
@@ -151,7 +154,7 @@ class Database:
             self.sendQuery(create_remove().format(*("accounts", f"id = {id}")), conn, curr)
             self.commit(conn, curr)
             return {"message": f"Account {id} deleted"}
-    
+
 
         # --- Transactions --- 
         @self.app.get("/transactions/{id}") # get transaction
@@ -274,7 +277,7 @@ class Database:
         @self.app.get("/group_transactions/{id}") # get group_transaction
         def get_group_transaction(id: int, db = Depends(self.get_db)):
             conn, curr = db
-            query = create_fetch_where().format(*('*', 'group_transactions', f'id = {id}'))
+            query = create_fetch_where().format(*('*', 'group_transactions', f'group_id = {id}'))
             data = self.fetchData(query, conn, curr)
             return {"id": id, "data": data}
         
@@ -288,7 +291,7 @@ class Database:
         @self.app.post("/group_transactions/") # post group_transaction
         async def create_group_transaction(group_transaction: GroupTransaction, db = Depends(self.get_db)):
             conn, curr = db
-            query = create_insert_group_transaction().format(*(group_transaction.id, group_transaction.group_id, group_transaction.paid_by_user_id, group_transaction.ammount, group_transaction.currency, group_transaction.description, group_transaction.created_at))
+            query = create_insert_group_transaction().format(*(group_transaction.id, group_transaction.group_id, group_transaction.paid_by_user_id, group_transaction.amount, group_transaction.currency, group_transaction.description, group_transaction.created_at))
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
             return {"message": f"Group Transaction added"}
@@ -296,7 +299,7 @@ class Database:
         @self.app.put("/group_transactions/{id}") # put group_transaction
         def update_group_transaction(id: int, group_transaction: GroupTransaction, db = Depends(self.get_db)):
             conn, curr = db
-            query = create_update_group_transaction().format(*(group_transaction.id, group_transaction.group_id, group_transaction.paid_by_user_id, group_transaction.ammount, group_transaction.currency, group_transaction.description, group_transaction.created_at)) 
+            query = create_update_group_transaction().format(*(group_transaction.id, group_transaction.group_id, group_transaction.paid_by_user_id, group_transaction.amount, group_transaction.currency, group_transaction.description, group_transaction.created_at)) 
             self.sendQuery(query, conn, curr)
             self.commit(conn, curr)
             return {"message": f"Group Transaction updated"}
@@ -313,7 +316,7 @@ class Database:
         @self.app.get("/passwords/{user_id}") # get password
         def get_password(user_id: int, db = Depends(self.get_db)):
             conn, curr = db
-            query = create_fetch_where().format(*('*', 'password', f'user_id = {user_id}'))
+            query = create_fetch_where().format(*('*', 'passwords', f'user_id = {user_id}'))
             data = self.fetchData(query, conn, curr)
             return {"user_id": user_id, "data": data}
         
