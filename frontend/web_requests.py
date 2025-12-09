@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
+import time
 from datetime import date
 from get_api import *
 
@@ -14,7 +15,7 @@ def chech_password(password) -> bool:
 
     return lower and upper and number and special
 
-@st.dialog("Make a new account")
+@st.dialog("Become a user")
 def create_user():
     df_users = get_db("users")
 
@@ -49,7 +50,6 @@ def create_user():
 
                 if response.status_code == 200:
                     st.success("User created successfully!")
-                    #st.json(response.json())
                 else:
                     st.error("Failed to create user")
                     st.write(response.text)
@@ -94,18 +94,20 @@ def create_account(user_id):
             response = requests.post("http://127.0.0.1:8000/accounts/", json=data)
 
             if response.status_code == 200:
-                st.success("Account created successfully!")
+                st.session_state.text_flag = 1
+                st.session_state.text = "Account created successfully!"
             else:
-                st.error("Failed to create an account")
                 st.write(response.text)
+                st.session_state.text_flag = -1
+                st.session_state.text = "Failed to create an account"
+            st.rerun()
 
 
 @st.dialog("Sent a transaction")
 def create_transaction(user_id):
     df_transactions = get_db("transactions")
     id = int(df_transactions["ID"].max() + 1) if not df_transactions.empty else 1
-    data = fetch_data(f"http://127.0.0.1:8000/accounts/{user_id}")
-    accounts = pd.DataFrame(data, columns=["ID", "User ID", "Name", "Type", "Balance", "Created at", "Currency"])
+    accounts = get_db("accounts", user_id)
     account = st.selectbox("From account:", options=accounts["Name"])
     if not account:
         st.warning("You have no accounts")
@@ -128,7 +130,7 @@ def create_transaction(user_id):
                 elif reciever.empty:
                     st.error("Such user doesn't exists")
                 else:
-                    data1 = {
+                    data = {
                         "id": id,
                         "from_account_id": int(chosen_account["ID"]),
                         "to_account_id": int(reciever["ID"].iloc[0]),
@@ -140,35 +142,30 @@ def create_transaction(user_id):
                         "created_at": date.today().isoformat()
                     }
 
-                    response = requests.post("http://127.0.0.1:8000/transactions/", json=data1)
+                    response = requests.post("http://127.0.0.1:8000/transactions/", json=data)
 
                     if response.status_code == 200:
-                        st.success("Transaction send!")
+                        st.session_state.text_flag = 1
+                        st.session_state.text = "Transaction send!"
                     else:
-                        st.error("Failed to sent the transaction")
+                        st.session_state.text_flag = -1
+                        st.session_state.text = "Failed to sent the transaction"
                         st.write(response.text)
 
-                    data2 = {
-                        "id": id + 1,
-                        "from_account_id": int(reciever["ID"].iloc[0]),
-                        "to_account_id": int(chosen_account["ID"]),
-                        "amount": amount, 
-                        "currency": str(chosen_account["Currency"].iloc[0]),
-                        "category": "idk",
-                        "description": description,
-                        "transaction_at": date.today().isoformat(),
-                        "created_at": date.today().isoformat()
-                    }
-
-                    response = requests.post("http://127.0.0.1:8000/transactions/", json=data2)
+                    data["id"] = data["id"] + 1
+                    data["amount"] = amount
+                    response = requests.post("http://127.0.0.1:8000/transactions/", json=data)
 
                     if response.status_code != 200:
-                        st.error("Internal error")
+                        st.session_state.text_flag = -1
+                        st.session_state.text = "Internal error"
                         st.write(response.text)
+                    st.rerun()
 
 
 @st.dialog("Make a new group")
-def create_group(user_id, df_groups):
+def create_group(user_id):
+    df_groups = get_db("groups")
     name = st.text_input("Name", placeholder="This field is required", key="group_name")
     group_id = int(df_groups["ID"].max() + 1) if not df_groups.empty else 1
     if st.button("Submit", key="Submit group"):
@@ -184,9 +181,11 @@ def create_group(user_id, df_groups):
 
             response = requests.post("http://127.0.0.1:8000/groups/", json=data1)
             if response.status_code == 200:
-                st.success("Group made!")
+                st.session_state.text_flag = 1
+                st.session_state.text = "Group made!"
             else:
-                st.error("Failed to create the group")
+                st.session_state.text_flag = -1
+                st.session_state.text = "Failed to create the group"
                 st.write(response.text)
 
             data2 = {
@@ -198,8 +197,10 @@ def create_group(user_id, df_groups):
 
             response = requests.post("http://127.0.0.1:8000/user_groups/", json=data2)
             if response.status_code != 200:
-                st.error("Internal error")
+                st.session_state.text_flag = -1
+                st.session_state.text = "Internal error"
                 st.write(response.text)
+            st.rerun()
 
 
 @st.dialog("Add a member")
@@ -211,14 +212,13 @@ def create_member(group_id):
 
     if st.button("Submit", key="Submit member"):
         if not username.strip() or not role.strip():
-            st.error("Please fill in required fields")
+            st.warning("Please fill in required fields")
         elif new_member.empty:
-            st.warning("Username not found :(")
+            st.error("Username not found")
         else:
             new_member_id = new_member.iloc[0]["ID"]
-            response = requests.get(f"http://127.0.0.1:8000/users/{new_member_id}/groups")
-            user_groups = pd.DataFrame(response.json()["groups"], columns=["ID", "User ID", "Group name", "Owned by", "Role", "Created at"])
-            if not user_groups.empty and group_id in user_groups["ID"].values:
+            user_groups = get_db("user_groups", new_member_id)
+            if not user_groups.empty and group_id in user_groups["Group ID"].values:
                 st.error("This user is already a member of this group")
             else:
                 data = {
@@ -230,10 +230,13 @@ def create_member(group_id):
 
                 response = requests.post("http://127.0.0.1:8000/user_groups/", json=data)
                 if response.status_code == 200:
-                    st.success("Member added!")
+                    st.session_state.text_flag = 1
+                    st.session_state.text = "Member added!"
                 else:
-                    st.error("Failed to add a member")
+                    st.session_state.text_flag = -1
+                    st.session_state.text = "Failed to add a member"
                     st.write(response.text)
+                st.rerun()
 
 
 @st.dialog("Sent a group transaction")
@@ -266,7 +269,10 @@ def create_group_transaction(user_id, group_id):
 
                     response = requests.post("http://127.0.0.1:8000/group_transactions/", json=data)
                     if response.status_code == 200:
-                        st.success("Transaction send!")
+                        st.session_state.text_flag = 1
+                        st.session_state.text = "Transaction send!"
                     else:
-                        st.error("Failed to sent the transaction")
+                        st.session_state.text_flag = -1
+                        st.session_state.text = "Failed to sent the transaction"
                         st.write(response.text)
+                    st.rerun()

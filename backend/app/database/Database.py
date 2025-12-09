@@ -157,12 +157,12 @@ class Database:
 
 
         # --- Transactions --- 
-        @self.app.get("/transactions/{id}") # get transaction
-        def get_transaction(id: int, db = Depends(self.get_db)):
-            conn, curr = db
-            query = create_fetch_where().format(*('*', 'transactions', f'id = {id}'))
-            data = self.fetchData(query, conn, curr)
-            return {"id": id, "data": data}
+        # @self.app.get("/transactions/{id}") # get transaction
+        # def get_transaction(id: int, db = Depends(self.get_db)):
+        #     conn, curr = db
+        #     query = create_fetch_where().format(*('*', 'transactions', f'id = {id}'))
+        #     data = self.fetchData(query, conn, curr)
+        #     return {"id": id, "data": data}
         
         @self.app.get("/transactions") # get transactions
         def get_transactions(db = Depends(self.get_db)):
@@ -277,7 +277,7 @@ class Database:
         @self.app.get("/group_transactions/{id}") # get group_transaction
         def get_group_transaction(id: int, db = Depends(self.get_db)):
             conn, curr = db
-            query = create_fetch_where().format(*('*', 'group_transactions', f'id = {id}'))
+            query = create_fetch_where().format(*('*', 'group_transactions', f'group_id = {id}'))
             data = self.fetchData(query, conn, curr)
             return {"id": id, "data": data}
         
@@ -393,3 +393,21 @@ class Database:
             data = self.fetchData(query, conn, curr)
 
             return {"data": data}
+        
+
+        @self.app.get("/transactions/{id}")
+        def display_transactions(id: int, db = Depends(self.get_db)):
+            conn, curr = db
+
+            query = f"""
+                SELECT *
+                FROM transactions
+                WHERE
+                    (from_account_id = {id} AND amount < 0)
+                OR
+                    (to_account_id  = {id} AND amount > 0) 
+                ORDER BY created_at;
+            """
+            data = self.fetchData(query, conn, curr)
+            return {"data": data}
+        
