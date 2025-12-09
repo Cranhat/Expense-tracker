@@ -39,7 +39,7 @@ if not st.session_state.logged_in:
     with col1:
         if st.button("Log in", width='stretch'):
                 if not username_input.strip() or not password_input.strip():
-                    st.warning("Please fill in required fields")
+                    st.warning("Please fill in required fields", width=1000)
                 else:
                     df_user = df_users[df_users["Username"].str.lower() ==  username_input]
                     if df_user.empty:
@@ -48,7 +48,9 @@ if not st.session_state.logged_in:
                         id = df_user.iloc[0]["ID"]
                         data =fetch_data(f"http://127.0.0.1:8000/passwords/{id}")
                         password = pd.DataFrame(data, columns=["ID", "Password"])
-                        if(password["Password"].iloc[0] != password_input):
+                        if password.empty:
+                            st.error("Wrong password")
+                        elif(password["Password"].iloc[0] != password_input):
                             st.error("Wrong password")
                         else:
                             do_login(username_input.strip().lower())
