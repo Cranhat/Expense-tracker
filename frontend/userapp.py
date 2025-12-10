@@ -3,6 +3,7 @@ import pandas as pd
 from get_api import *
 from web_requests import *
 from log_handler import *
+from backend.app.database.password_encryption import *
 
 st.title("Personal Expense Tracker")
 
@@ -50,7 +51,7 @@ if not st.session_state.logged_in:
                         password = pd.DataFrame(data, columns=["ID", "Password"])
                         if password.empty:
                             st.error("Wrong password")
-                        elif(password["Password"].iloc[0] != password_input):
+                        elif(not verify_password(password_input, password["Password"].iloc[0])):
                             st.error("Wrong password")
                         else:
                             do_login(username_input.strip().lower())

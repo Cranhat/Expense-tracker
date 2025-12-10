@@ -4,8 +4,9 @@ import pandas as pd
 import time
 from datetime import date
 from get_api import *
+from backend.app.database.password_encryption import *
 
-def chech_password(password) -> bool:
+def check_password(password) -> bool:
     if len(password) < 9:
         return False
     lower = any(ch.islower() for ch in password)
@@ -24,12 +25,13 @@ def create_user():
     surname = st.text_input("Surname", placeholder="This field is required")
     username = st.text_input("Username", placeholder="This field is required")
     email = st.text_input("Email", placeholder="This field is required")
-    password = st.text_input("Password", type="password", placeholder="This field is required")
+    password_unhashed = st.text_input("Password", type="password", placeholder="This field is required")
 
+    
     if st.button("Submit", key="Submit user"):
         if (df_users["Username"].str.lower() == username).any():
             st.error("This username is taken")
-        elif(chech_password(password) == False):
+        elif(check_password(password_unhashed) == False):
             st.error("Your password should contain at least: 10 characters, a number, a special character, a small and a big letter")
         else:
             if not name.strip() or not surname.strip() or not username.strip() or not email.strip():
@@ -56,7 +58,7 @@ def create_user():
 
                 data2 = {
                     "user_id" : id,
-                    "password": password
+                    "password": hash_password(password_unhashed)
                 }
 
                 response = requests.post("http://127.0.0.1:8000/passwords/", json=data2)
