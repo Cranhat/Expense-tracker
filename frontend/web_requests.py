@@ -6,32 +6,36 @@ from datetime import date
 from get_api import *
 from backend.app.database.password_encryption import *
 
+def account_balance(account_id: int, amount: float):
+    account = get_db("accounts", account_id).iloc[0]
+    data = {
+            "id" : str(account["ID"]),
+            "user_id": str(account["User ID"]),
+            "name": str(account["Name"]),
+            "type": str(account["Type"]),
+            "balance": float(amount + account["Balance"]),
+            "creation_date": str(account["Created at"]),
+            "currency": str(account["Currency"])
+        }
+
+    response = requests.put(f"http://127.0.0.1:8000/accounts/{account_id}", json=data)
+
+    if response.status_code != 200:
+        st.error("Internal error")
+        st.write(response.text)
+
 
 @st.dialog("Deposit money into your account")
 def deposit(account_id):
     amount = st.number_input("How much do you want to deposit?")
-    account = get_db("accounts", account_id).iloc[0]
+
     if st.button("Deposit", key="deposit_1"):
         if not amount:
             st.warning("Please fill in required fields")
         else:
-            data = {
-                "id" : str(account["ID"]),
-                "user_id": str(account["User ID"]),
-                "name": str(account["Name"]),
-                "type": str(account["Type"]),
-                "balance": float(amount + account["Balance"]),
-                "creation_date": str(account["Created at"]),
-                "currency": str(account["Currency"])
-            }
-
-            response = requests.put(f"http://127.0.0.1:8000/accounts/{account_id}", json=data)
-
-            if response.status_code == 200:
-                st.success("Money deposited")
-            else:
-                st.error("Failed to deposit")
-                st.write(response.text)
+            account_balance(account_id, amount)
+            st.session_state.text_flag = 1
+            st.session_state.text = "Money has been send into your account"
             st.rerun()
 
 
@@ -161,37 +165,46 @@ def create_transaction(user_id):
                 elif reciever.empty:
                     st.error("Such user doesn't exists")
                 else:
-                    data = {
-                        "id": id,
-                        "from_account_id": int(chosen_account["ID"]),
-                        "to_account_id": int(reciever["ID"].iloc[0]),
-                        "amount": -amount, 
-                        "currency": str(chosen_account["Currency"].iloc[0]),
-                        "category": "idk",
-                        "description": description,
-                        "transaction_at": date.today().isoformat(),
-                        "created_at": date.today().isoformat()
-                    }
-
-                    response = requests.post("http://127.0.0.1:8000/transactions/", json=data)
-
-                    if response.status_code == 200:
-                        st.session_state.text_flag = 1
-                        st.session_state.text = "Transaction send!"
+                    reciever_id = reciever["ID"].iloc[0]
+                    reciever_accounts = get_db("accounts", reciever_id, "/")
+                    sent_to_account = reciever_accounts[reciever_accounts["Currency"]==chosen_account["Currency"].iloc[0]]
+                    if sent_to_account.empty:
+                        st.warning("This user does't have an account with matching currency")
                     else:
-                        st.session_state.text_flag = -1
-                        st.session_state.text = "Failed to sent the transaction"
-                        st.write(response.text)
+                        data = {
+                            "id": id,
+                            "from_account_id": int(chosen_account["ID"]),
+                            "to_account_id": int(sent_to_account["ID"].iloc[0]),
+                            "amount": -amount, 
+                            "currency": str(chosen_account["Currency"].iloc[0]),
+                            "category": "idk",
+                            "description": description,
+                            "transaction_at": date.today().isoformat(),
+                            "created_at": date.today().isoformat()
+                        }
 
-                    data["id"] = data["id"] + 1
-                    data["amount"] = amount
-                    response = requests.post("http://127.0.0.1:8000/transactions/", json=data)
+                        response = requests.post("http://127.0.0.1:8000/transactions/", json=data)
 
-                    if response.status_code != 200:
-                        st.session_state.text_flag = -1
-                        st.session_state.text = "Internal error"
-                        st.write(response.text)
-                    st.rerun()
+                        if response.status_code == 200:
+                            st.session_state.text_flag = 1
+                            st.session_state.text = "Transaction send!"
+                            account_balance(int(chosen_account["ID"]), -amount)
+                        else:
+                            st.session_state.text_flag = -1
+                            st.session_state.text = "Failed to sent the transaction"
+                            st.write(response.text)
+
+                        data["id"] = data["id"] + 1
+                        data["amount"] = amount
+                        response = requests.post("http://127.0.0.1:8000/transactions/", json=data)
+
+                        if response.status_code != 200:
+                            st.session_state.text_flag = -1
+                            st.session_state.text = "Internal error"
+                            st.write(response.text)
+                        else:
+                            account_balance(int(sent_to_account["ID"].iloc[0]), amount)
+                        st.rerun()
 
 
 @st.dialog("Make a new group")

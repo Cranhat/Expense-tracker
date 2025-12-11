@@ -242,7 +242,7 @@ class Database:
 
         
         # --- User groups --- 
-        @self.app.get("/user_group/{user_id}") # get user_group
+        @self.app.get("/user_groups/{user_id}") # get user_group
         def get_user_group(user_id: int, db = Depends(self.get_db)):
             conn, curr = db
             query = create_fetch_where().format(*('*', 'user_groups', f'user_id = {user_id}'))

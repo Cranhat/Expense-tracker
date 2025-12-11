@@ -124,7 +124,7 @@ if st.session_state.logged_in and st.session_state.manage_group == -1:
         if account_to_show is not None:
             df_transactions = get_db("transactions", account_to_show)
             st.subheader("Transactions")
-            st.dataframe(df_transactions.drop(columns=["ID", "From account ID", "To account ID"]), width='stretch') #transactions table
+            st.dataframe(df_transactions.drop(columns=["ID", "From account ID", "Category", "To account ID"]), width='stretch') #transactions table
     else:
          st.info("You have no accounts")
 
