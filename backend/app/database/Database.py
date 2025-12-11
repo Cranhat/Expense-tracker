@@ -128,6 +128,13 @@ class Database:
         @self.app.get("/accounts/{id}") # get accounts
         def get_account(id: int, db = Depends(self.get_db)):
             conn, curr = db
+            query = create_fetch_where().format(*('*', 'accounts', f'id = {id}'))
+            data = self.fetchData(query, conn, curr)
+            return {"id": id, "data": data}
+        
+        @self.app.get("/accounts//{id}") # get accounts
+        def get_user_account(id: int, db = Depends(self.get_db)):
+            conn, curr = db
             query = create_fetch_where().format(*('*', 'accounts', f'user_id = {id}'))
             data = self.fetchData(query, conn, curr)
             return {"id": id, "data": data}
@@ -268,7 +275,14 @@ class Database:
         @self.app.delete("/user_groups/{id}") # delete user_group
         def delete_user_group(id: int, db = Depends(self.get_db)):
             conn, curr = db
-            self.sendQuery(create_remove().format(*("user_groups", f"id = {id}")), conn, curr)
+            self.sendQuery(create_remove().format(*("user_groups", f"group_id = {id}")), conn, curr)
+            self.commit(conn, curr)
+            return {"message": f"User group {id} deleted"}
+        
+        @self.app.delete("/user_groups/{group_id}/{user_id}") # delete member
+        def delete_member(group_id: int, user_id: int, db = Depends(self.get_db)):
+            conn, curr = db
+            self.sendQuery(create_remove_member().format(*("user_groups", f"group_id = {group_id}", f"user_id = {user_id}")), conn, curr)
             self.commit(conn, curr)
             return {"message": f"User group {id} deleted"}
 

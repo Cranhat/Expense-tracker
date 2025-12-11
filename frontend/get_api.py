@@ -3,6 +3,7 @@ import pandas as pd
 
 APIS = {
     "users": "http://127.0.0.1:8000/users",
+    "passwords": "http://127.0.0.1:8000/passwords",
     "accounts": "http://127.0.0.1:8000/accounts",
     "transactions": "http://127.0.0.1:8000/transactions",
     "groups": "http://127.0.0.1:8000/groups",
@@ -28,13 +29,13 @@ def fetch_data(api):
     except Exception as e:
         return []
     
-def get_db(df: str, id = -1):
+def get_db(df: str, id = -1, x = "",):
     if df not in APIS:
         raise ValueError(f"Unknown dataset '{df}'. Must be one of: {list(APIS.keys())}")
     
     address = APIS[df]
     if id != -1:
-        address = address + f"/{id}"
+        address = address + x + f"/{id}"
         
     data = fetch_data(address)
     result = pd.DataFrame(data, columns=COLUMNS[df])

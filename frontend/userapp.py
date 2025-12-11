@@ -3,6 +3,7 @@ import pandas as pd
 from get_api import *
 from web_requests import *
 from log_handler import *
+from web_delete import *
 from backend.app.database.password_encryption import *
 
 st.title("Personal Expense Tracker")
@@ -16,6 +17,8 @@ if "username" not in st.session_state:
     st.session_state.username = ""
 if "show_logout_confirm" not in st.session_state:
     st.session_state.show_logout_confirm = False
+if "show_delete_confirm" not in st.session_state:
+    st.session_state.show_delete_confirm = False
 if "manage_group" not in st.session_state:
     st.session_state.manage_group = -1
 if "user_id" not in st.session_state:
@@ -34,8 +37,6 @@ df_users = get_db("users")
 if not st.session_state.logged_in:
     username_input = st.text_input("Enter your username", value="")
     password_input = st.text_input("Enter your password", type="password", value="")
-    # username_input = "naitomi"
-    # password_input = "aaaaaaaaaaaaA123!"
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Log in", width='stretch'):
@@ -104,20 +105,28 @@ if st.session_state.logged_in and st.session_state.manage_group == -1:
         st.dataframe(display_user_accounts_df) #accounts table
         account_to_show = None
         
-        with st.expander("Show transactions"):
+        with st.expander("Manage accounts"):
             for idx, row in user_accounts_df.iterrows():
-                col1, col2 = st.columns([3, 1])
+                col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
                 with col1:
                     st.write(f"{row['Name']} - Type: {row['Type']} - Balance: {row['Balance']}")
                 with col2:
-                    if st.button("Load Transactions", key=f"txn_{row['ID']}"):
+                    if st.button("Load Transactions", key=f"txn_{row['ID']}", width='stretch'):
                         account_to_show = row['ID']
+                with col3:
+                    if st.button("Deposit", width='stretch'):
+                        deposit(row['ID'])
+                with col4:
+                     if st.button("Delete", key=f"delete_account_{row['ID']}", width='stretch', type='primary'):
+                        delete_account(row['ID'])
 
         #transactions
         if account_to_show is not None:
             df_transactions = get_db("transactions", account_to_show)
             st.subheader("Transactions")
             st.dataframe(df_transactions.drop(columns=["ID", "From account ID", "To account ID"]), width='stretch') #transactions table
+    else:
+         st.info("You have no accounts")
 
     # groups
     response = requests.get(f"http://127.0.0.1:8000/users/{user_id}/groups")
@@ -127,25 +136,38 @@ if st.session_state.logged_in and st.session_state.manage_group == -1:
     st.subheader("Your Groups")
     if not user_groups.empty:
         st.dataframe(user_groups.drop(columns=["ID", "User ID",]))
+
+        with st.expander("Manage your groups"):
+            for idx, row in user_groups.iterrows():
+                col1, col2, col3 = st.columns([2, 1, 1])
+                with col1:
+                    st.write(f"{row['Group name']}")
+                with col2:
+                    if st.button("Manage", width='stretch', key=f"manage_{row['ID']}"):
+                        st.session_state.manage_group = row["ID"]
+                        st.session_state.user_id = user_id
+                        st.rerun()
+                with col3:
+                    if st.button("Delete group", key=f"delete_group_{row['ID']}", width='stretch', type='primary'):
+                            delete_group(row['ID'])
     else:
         st.info("You are not part of any groups.")
 
-    with st.expander("Manage your groups"):
-        for idx, row in user_groups.iterrows():
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                st.write(f"{row['Group name']}")
-            with col2:
-                if st.button("Manage", width='stretch', key=f"manage_{row['ID']}"):
-                    st.session_state.manage_group = row["ID"]
-                    st.session_state.user_id = user_id
-                    st.rerun()
+    col1, col2 = st.columns(2)
+    with col1:
 
-    if not st.session_state.show_logout_confirm:
-        if st.button("Log out", type='primary'):
-            request_logout()
-    else:
-        logout_dialog()
+        if not st.session_state.show_logout_confirm:
+            if st.button("Log out", type='primary', width='stretch'):
+                request_logout()
+        else:
+            logout_dialog()
+
+    with col2:
+        if not st.session_state.show_delete_confirm:
+            if st.button("Delete user", type='primary', width='stretch'):
+                request_delete()
+        else:
+            delete_user_dialog(user_id)
 ##############################################
 
 
@@ -162,37 +184,38 @@ if st.session_state.manage_group != -1:
     group_id = st.session_state.manage_group
     data = fetch_data(f"http://127.0.0.1:8000/groups/{group_id}/data")
     group = pd.DataFrame(data, columns=["User ID", "Username", "Owner", "Owner ID", "Role", "Joined at", "Name"])
-    owner = group.at[0, "Owner"]
-    group_name = group["Name"].iloc[0]
-    if st.session_state.user_id == group["Owner ID"].iloc[0]:
-        text = "you"
-    else:
-        text = owner
+    if not group.empty:
+        owner = group.iloc[0]["Owner"]
+        group_name = group["Name"].iloc[0]
+        if st.session_state.user_id == group["Owner ID"].iloc[0]:
+            text = "you"
+        else:
+            text = owner
 
-    # data = fetch_data(f"http://127.0.0.1:8000/group_transactions/{group_id}")
-    # group_transactions = pd.DataFrame(data, columns=["ID", "Group ID", "Paid by", "Amount", "Currency", "Description", "Created at"])
+        st.subheader(f"Managing group \"{group_name}\", owned by {text}")
+        st.text("Members", width='content')
+        st.table(group.drop(columns=["User ID", "Owner", "Owner ID", "Name"]))
+        st.text("Transactions")
+        group_transactions = get_db("group_transactions", group_id)
+        st.table(group_transactions.drop(columns=["ID", "Group ID"]))
 
-    st.subheader(f"Managing group \"{group_name}\", owned by {text}")
-    st.text("Members", width='content')
-    st.table(group.drop(columns=["User ID", "Owner", "Owner ID", "Name"]))
-    st.text("Transactions")
-    group_transactions = get_db("group_transactions", group_id)
-    st.table(group_transactions.drop(columns=["ID", "Group ID"]))
-
-    if st.session_state.user_id == group["Owner ID"].iloc[0]:
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Add a member", width='stretch'):
-                create_member(group_id)
-        with col2:
-            if st.button("Make a new transaction", width='stretch', key="new group transaction admin"):
+        if st.session_state.user_id == group["Owner ID"].iloc[0]:
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("Add a member", width='stretch'):
+                    create_member(group_id)
+            with col2:
+                if st.button("Make a new transaction", width='stretch', key="new group transaction admin"):
+                    create_group_transaction(st.session_state.user_id, group_id)
+            with col3:
+                if st.button("Delete a member", width='stretch', type='primary'):
+                    delete_member(group_id, owner)
+        else:
+            if st.button("Make a new transaction", key="new group transaction"):
                 create_group_transaction(st.session_state.user_id, group_id)
-    else:
-        if st.button("Make a new transaction", key="new group transaction"):
-            create_group_transaction(st.session_state.user_id, group_id)
 
-    if st.button("Go back"):
-        st.session_state.manage_group = -1
-        st.rerun()
+        if st.button("Go back"):
+            st.session_state.manage_group = -1
+            st.rerun()
 ##############################################
 st.session_state.text_flag = 0

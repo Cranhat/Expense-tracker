@@ -6,6 +6,35 @@ from datetime import date
 from get_api import *
 from backend.app.database.password_encryption import *
 
+
+@st.dialog("Deposit money into your account")
+def deposit(account_id):
+    amount = st.number_input("How much do you want to deposit?")
+    account = get_db("accounts", account_id).iloc[0]
+    if st.button("Deposit", key="deposit_1"):
+        if not amount:
+            st.warning("Please fill in required fields")
+        else:
+            data = {
+                "id" : str(account["ID"]),
+                "user_id": str(account["User ID"]),
+                "name": str(account["Name"]),
+                "type": str(account["Type"]),
+                "balance": float(amount + account["Balance"]),
+                "creation_date": str(account["Created at"]),
+                "currency": str(account["Currency"])
+            }
+
+            response = requests.put(f"http://127.0.0.1:8000/accounts/{account_id}", json=data)
+
+            if response.status_code == 200:
+                st.success("Money deposited")
+            else:
+                st.error("Failed to deposit")
+                st.write(response.text)
+            st.rerun()
+
+
 def check_password(password) -> bool:
     if len(password) < 9:
         return False
@@ -88,7 +117,7 @@ def create_account(user_id):
                 "user_id": int(user_id),
                 "name": name,
                 "type": type,
-                "balance": 100,
+                "balance": 0,
                 "creation_date": date.today().isoformat(),
                 "currency": currency
             }
@@ -109,7 +138,7 @@ def create_account(user_id):
 def create_transaction(user_id):
     df_transactions = get_db("transactions")
     id = int(df_transactions["ID"].max() + 1) if not df_transactions.empty else 1
-    accounts = get_db("accounts", user_id)
+    accounts = get_db("accounts", user_id, "/")
     account = st.selectbox("From account:", options=accounts["Name"])
     if not account:
         st.warning("You have no accounts")
